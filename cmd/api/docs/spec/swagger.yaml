@@ -1,0 +1,104 @@
+openapi: 3.0.0
+info:
+  version: '1.0'
+  title: 'Greenlight API '
+  description: 'An api that let you manage movies'
+  termsOfService: https://greenlight.io/terms-of-use
+  contact:
+    name: Babatunde Ololade
+    url: https://babatundeola.medium.com
+    email: babatundeololade50@gmail.com
+  license:
+    name: Greenlight License
+    url: https://greenlight.io/license
+
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/BABATUNDEOLOLADE50/greenlight/1.0
+  - description: Development Server
+    url: dev.api.greenlight.io
+  - description: Production Server
+    url: api.greenlight.io
+
+paths:
+  /v1/users:
+    post:
+      tags:
+        - users
+      summary: Creates a new user account
+      description: Create a new unactived user, new user will need to make another request in other to activate account
+      operationId: addUser
+      requestBody:
+        description: New user information
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: 'Alex Jones'
+                email:
+                  type: string
+                  example: 'alexjones@gmail.com'
+                password:
+                  type: string
+                  example: 'pa55word'
+
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: 'Alex Jones'
+                  email:
+                    type: string
+                    example: 'alexjones@gmail.com'
+                  activated:
+                    type: boolean
+                    example: false
+                  id:
+                    type: integer
+                    example: 1
+                  version:
+                    type: integer
+                    example: 1
+                  createdAt:
+                    type: string
+                    example: '15th of Jan, 2020'
+        '400':
+          description: Bad Request Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Bad input provided'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'the server encountered a problem and could not process your request'
+        '422':
+          description: Failed Validation Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'a user with this email address already exists'

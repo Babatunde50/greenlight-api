@@ -1,25 +1,31 @@
 package main
 
 import (
+	_ "embed"
 	"expvar"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
 
+//go:embed docs/spec
+var spec []byte
+
 func (app *application) routes() http.Handler {
+
 	router := httprouter.New()
 
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
+
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	// router.HandlerFunc(http.MethodPost, "/v1/movies", app.requireActivatedUser(app.createMovieHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/movies", app.requireActivatedUser(app.listMoviesHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requireActivatedUser(app.showMovieHandler))
-	// router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requireActivatedUser(app.updateMovieHandler))
-	// router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requireActivatedUser(app.deleteMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/swagger_spec", func(w http.ResponseWriter, _ *http.Request) {
+		w.Write(spec)
+	})
+
+	router.ServeFiles("/docs/*filepath", http.Dir("cmd/api/docs/dist"))
 
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
@@ -32,7 +38,6 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
-	// this is one of the best asnd the most interesting thing to have ever happpened to me...
 	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router)))))
 
 }
