@@ -9,8 +9,15 @@ To use this API, you will need:
 
 - Go version 1.13 or higher
 - A PostgreSQL database
+- A SMTP connection server
 - A .envrc file with the following environment variables:
     - GREENLIGHT_DB_DSN: the connection string for your PostgreSQL database
+    - SMTP_HOST: smtp host
+    - SMTP_PORT: smtp port
+    - SMTP_USERNAME: smtp username
+    - SMTP_PASSWORD: smtp password
+    - SMTP_SENDER=details of the sendr
+
 
 
 ## Development
@@ -80,6 +87,14 @@ This API is a powerful tool for managing movie and user resources. By following 
 | PUT  | /v1/users/activated |    - |
 | POST  | /v1/tokens/authentication |    - |
 | GET | /debug/vars | -
+| POST | /api/movies/:movieId/reviews | -
+| GET | /api/movies/:movieId/reviews | - 
+| GET | /api/movies/:movieId/reviews | - 
+| GET | /api/reviews/:reviewId | - 
+| PATCH | /api/reviews/:reviewId | - 
+| DELETE | /api/reviews/:reviewId | - 
+
+
 
 ## More features ideas 
 
