@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 // Define a custom ErrRecordNotFound error. We'll return this from our Get() method when // looking up a movie that doesn't exist in our database.
@@ -13,20 +14,30 @@ var (
 
 // Create a Models struct which wraps the MovieModel. We'll add other models to this, // like a UserModel and PermissionModel, as our build progresses.
 type Models struct {
-	// Movies interface {
-	// 	Insert(movie *Movie) error
-	// 	Get(id int64) (*Movie, error)
-	// 	Update(movie *Movie) error
-	// 	Delete(id int64) error
-	// 	GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error)
-	// }
-	Movies      MovieModel
-	Users       UserModel
-	Tokens      TokenModel
-	Permissions PermissionModel
+	Movies interface {
+		Insert(movie *Movie) error
+		Get(id int64) (*Movie, error)
+		Update(movie *Movie) error
+		Delete(id int64) error
+		GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error)
+	}
+	Users interface {
+		GetByEmail(email string) (*User, error)
+		GetForToken(tokenScope string, tokenPlaintext string) (*User, error)
+		Insert(user *User) error
+		Update(user *User) error
+	}
+	Tokens interface {
+		DeleteAllForUser(scope string, userID int64) error
+		Insert(token *Token) error
+		New(userID int64, ttl time.Duration, scope string) (*Token, error)
+	}
+	Permissions interface {
+		AddForUser(userID int64, codes ...string) error
+		GetAllForUser(userID int64) (Permissions, error)
+	}
 }
 
-// For ease of use, we also add a New() method which returns a Models struct containing // the initialized MovieModel.
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Movies:      MovieModel{DB: db},
@@ -36,8 +47,11 @@ func NewModels(db *sql.DB) Models {
 	}
 }
 
-// func NewMockModels() Models {
-// 	return Models{
-// 		Movies: MockMovieModel{},
-// 	}
-// }
+func NewMockModels() Models {
+	return Models{
+		Movies:      MockMovieModel{},
+		Users:       MockUserModel{},
+		Tokens:      MockTokenModel{},
+		Permissions: MockPermissionModel{},
+	}
+}
