@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Babatunde50/green-light/internal/data"
+	"github.com/Babatunde50/green-light/internal/session"
 	"github.com/Babatunde50/green-light/internal/validator"
 	"github.com/felixge/httpsnoop"
 	"github.com/tomasen/realip"
@@ -83,7 +84,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	})
 }
 
-func (app *application) authenticate(next http.Handler) http.Handler {
+func (app *application) authenticateByToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization")
 
@@ -122,6 +123,51 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		}
 
 		r = app.contextSetUser(r, user)
+
+		next.ServeHTTP(w, r)
+
+	})
+}
+
+func (app *application) authenticateByCookie(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		sess, err := app.session.SessionRead(w, r)
+
+		if err != nil {
+			switch {
+			case errors.Is(err, session.ErrSessionNotFound):
+				r = app.contextSetUser(r, data.AnonymousUser)
+				next.ServeHTTP(w, r)
+				return
+			case errors.Is(err, http.ErrNoCookie):
+				r = app.contextSetUser(r, data.AnonymousUser)
+				next.ServeHTTP(w, r)
+				return
+			default:
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+		}
+
+		// check if cookie has expired
+		isExpired := sess.IsSessionExpired(app.config.cookie.maxlifetime)
+
+		if isExpired {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user := sess.Get("user")
+
+		if user == nil {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		r = app.contextSetUser(r, user.(*data.User))
 
 		next.ServeHTTP(w, r)
 
@@ -219,16 +265,6 @@ func (app *application) metrics(next http.Handler) http.Handler {
 	totalResponsesSentByStatus := expvar.NewMap("total_responses_sent_by_status")
 	// The following code will be run for every request...
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { // Record the time that we started to process the request.
-		// start := time.Now()
-		// // Use the Add() method to increment the number of requests received by 1.
-		// totalRequestsReceived.Add(1)
-		// // Call the next handler in the chain.
-		// next.ServeHTTP(w, r)
-		// // On the way back up the middleware chain, increment the number of responses // sent by 1.
-		// totalResponsesSent.Add(1)
-		// // Calculate the number of microseconds since we began to process the request, // then increment the total processing time by this amount.
-		// duration := time.Now().Sub(start).Microseconds()
-		// totalProcessingTimeMicroseconds.Add(duration)
 
 		// Increment the requests received count, like before.
 		totalRequestsReceived.Add(1)

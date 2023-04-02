@@ -15,6 +15,7 @@ import (
 	"github.com/Babatunde50/green-light/internal/data"
 	"github.com/Babatunde50/green-light/internal/jsonlog"
 	"github.com/Babatunde50/green-light/internal/mailer"
+	"github.com/Babatunde50/green-light/internal/session"
 	_ "github.com/lib/pq"
 )
 
@@ -49,14 +50,18 @@ type config struct {
 	cors struct {
 		trustedOrigins []string
 	}
+	cookie struct {
+		maxlifetime int64
+	}
 }
 
 type application struct {
-	config config
-	logger *jsonlog.Logger
-	models data.Models
-	mailer mailer.Mailer
-	wg     sync.WaitGroup
+	config  config
+	logger  *jsonlog.Logger
+	models  data.Models
+	mailer  mailer.Mailer
+	wg      sync.WaitGroup
+	session *session.Manager
 }
 
 func main() {
@@ -81,6 +86,8 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "", "SMTP sender")
 
+	flag.Int64Var(&cfg.cookie.maxlifetime, "cookie-max-lifetime", 60, "Max lifetime of cookie")
+
 	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
@@ -99,6 +106,10 @@ func main() {
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	db, err := openDB(cfg)
+
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
 
 	if err != nil {
 		logger.PrintFatal(err, nil)
@@ -123,11 +134,15 @@ func main() {
 		return time.Now().Unix()
 	}))
 
+	globalSessions, err := session.NewManager("memory", "auth_token", cfg.cookie.maxlifetime)
+	go globalSessions.GC()
+
 	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
-		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		config:  cfg,
+		logger:  logger,
+		models:  data.NewModels(db),
+		mailer:  mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		session: globalSessions,
 	}
 
 	app.serve()
