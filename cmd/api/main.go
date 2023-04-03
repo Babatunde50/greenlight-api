@@ -31,6 +31,7 @@ type config struct {
 	port         int
 	env          string
 	jwtSecretKey string
+	authType     string
 	db           struct {
 		dsn          string
 		maxOpenConns int
@@ -75,6 +76,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
 	flag.StringVar(&cfg.jwtSecretKey, "jwt-secret-key", "slkdfjoaiewrpweqro!?8w943", "JWT secret key")
+	flag.StringVar(&cfg.authType, "auth-type", "jwt", "Authentication Type (basic | jwt | cookies | token ) ")
 
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")

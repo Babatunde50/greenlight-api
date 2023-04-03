@@ -11,8 +11,6 @@ import (
 //go:embed docs/spec
 var spec []byte
 
-// make a function to add two numbers
-
 func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
@@ -43,6 +41,18 @@ func (app *application) routes() http.Handler {
 
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
-	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticateByJWTToken(router)))))
+	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.addAuthType(app.config.authType, router)))))
 
+}
+
+func (app *application) addAuthType(authType string, router *httprouter.Router) http.Handler {
+	if authType == "cookies" {
+		return app.authenticateByCookie(router)
+	} else if authType == "basic" {
+		return app.authenticateByBasicToken(router)
+	} else if authType == "jwt" {
+		return app.authenticateByJWTToken(router)
+	} else {
+		return app.authenticateByToken(router)
+	}
 }
