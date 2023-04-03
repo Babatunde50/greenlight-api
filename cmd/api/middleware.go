@@ -131,6 +131,40 @@ func (app *application) authenticateByToken(next http.Handler) http.Handler {
 	})
 }
 
+func (app *application) authenticateByJWTToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Authorization")
+
+		authorizationHeader := r.Header.Get("Authorization")
+
+		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		token := headerParts[1]
+
+		claim, err := app.jwtMaker.VerifyToken(token)
+
+		if err != nil {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		r = app.contextSetUser(r, &claim.User)
+
+		next.ServeHTTP(w, r)
+
+	})
+}
+
 func (app *application) authenticateByBasicToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

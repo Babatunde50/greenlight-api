@@ -14,6 +14,7 @@ import (
 
 	"github.com/Babatunde50/green-light/internal/data"
 	"github.com/Babatunde50/green-light/internal/jsonlog"
+	"github.com/Babatunde50/green-light/internal/jwt"
 	"github.com/Babatunde50/green-light/internal/mailer"
 	"github.com/Babatunde50/green-light/internal/session"
 	_ "github.com/lib/pq"
@@ -27,9 +28,10 @@ var (
 )
 
 type config struct {
-	port int
-	env  string
-	db   struct {
+	port         int
+	env          string
+	jwtSecretKey string
+	db           struct {
 		dsn          string
 		maxOpenConns int
 		maxIdleConns int
@@ -56,12 +58,13 @@ type config struct {
 }
 
 type application struct {
-	config  config
-	logger  *jsonlog.Logger
-	models  data.Models
-	mailer  mailer.Mailer
-	wg      sync.WaitGroup
-	session *session.Manager
+	config   config
+	logger   *jsonlog.Logger
+	models   data.Models
+	mailer   mailer.Mailer
+	wg       sync.WaitGroup
+	session  *session.Manager
+	jwtMaker *jwt.JWTMaker
 }
 
 func main() {
@@ -71,6 +74,7 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
+	flag.StringVar(&cfg.jwtSecretKey, "jwt-secret-key", "slkdfjoaiewrpweqro!?8w943", "JWT secret key")
 
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
@@ -138,11 +142,12 @@ func main() {
 	go globalSessions.GC()
 
 	app := &application{
-		config:  cfg,
-		logger:  logger,
-		models:  data.NewModels(db),
-		mailer:  mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
-		session: globalSessions,
+		config:   cfg,
+		logger:   logger,
+		models:   data.NewModels(db),
+		mailer:   mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		session:  globalSessions,
+		jwtMaker: jwt.NewJWTMaker(cfg.jwtSecretKey),
 	}
 
 	app.serve()

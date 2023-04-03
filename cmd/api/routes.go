@@ -29,24 +29,20 @@ func (app *application) routes() http.Handler {
 
 	router.ServeFiles("/docs/*filepath", http.Dir("cmd/api/docs/dist"))
 
-	// router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
-	// router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requirePermission("movies:read", app.showMovieHandler))
-	// router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requirePermission("movies:write", app.updateMovieHandler))
-	// router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requirePermission("movies:write", app.deleteMovieHandler))
-
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.listMoviesHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requirePermission("movies:read", app.showMovieHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requirePermission("movies:write", app.updateMovieHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requirePermission("movies:write", app.deleteMovieHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/jwt-tokens/authentication", app.createAuthenticationJWTTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/cookies/authentication", app.createAuthenticationCookieHandler)
+
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
-	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticateByBasicToken(router)))))
+	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticateByJWTToken(router)))))
 
 }
