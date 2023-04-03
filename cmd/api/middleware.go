@@ -180,6 +180,7 @@ func (app *application) authenticateByBasicToken(next http.Handler) http.Handler
 			passwordMatch := (subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1)
 
 			if usernameMatch && passwordMatch {
+				// TODO: get a valid user from the DB
 				r = app.contextSetUser(r, &data.User{
 					ID:        45,
 					Email:     "alice@example.com",
@@ -194,7 +195,7 @@ func (app *application) authenticateByBasicToken(next http.Handler) http.Handler
 		}
 
 		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		app.errorResponse(w, r, http.StatusUnauthorized, "Unauthorized")
 	})
 }
 
